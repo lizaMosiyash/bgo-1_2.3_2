@@ -3,6 +3,7 @@ package card
 import (
 	"fmt"
 	"sync"
+	"time"
 )
 
 type Transaction struct {
@@ -25,6 +26,7 @@ func Sum(transactions []*Part) int64 {
 }
 
 func SumConcurrently(transactions []*Part, goroutines int) int64 {
+
 	wg := sync.WaitGroup{}
 	wg.Add(goroutines)
 
@@ -41,4 +43,34 @@ func SumConcurrently(transactions []*Part, goroutines int) int64 {
 
 	wg.Wait()
 	return total
+}
+
+func GroupTransactionsByMonth(start, finish time.Time, transactions []*Transaction) []*Part {
+	months := make([]*Part, 0)
+	parts := make([]*Part, 0)
+
+	next := start
+	for next.Before(finish) {
+		months = append(months, &Part{
+			MonthTimestamp: next.Unix(),
+		})
+		next = next.AddDate(0, 1, 0)
+	}
+	months = append(months, &Part{
+		MonthTimestamp: finish.Unix(),
+	})
+	for _, transaction := range transactions {
+		count := len(months)
+		if transaction != nil {
+			for i := 0; i < count; i++ {
+				month := months[i]
+				t1 := time.Unix(months[i].MonthTimestamp, 0)
+				t2 := time.Unix(transaction.TimeStamp, 0)
+				if t1.Year() == t2.Year() && t1.Month() == t2.Month() {
+					month.PartTransactions = append(month.PartTransactions, transaction)
+				}
+				parts = append(parts, month)}
+		}
+	}
+return parts
 }
